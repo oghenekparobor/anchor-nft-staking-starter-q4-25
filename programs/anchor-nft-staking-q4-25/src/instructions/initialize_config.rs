@@ -25,9 +25,9 @@ pub struct InitializeConfig<'info> {
         mint::decimals = 6,
         mint::authority = config,
     )]
-    pub reward_mint: Account<'info, Mint>,
+    pub reward_mint: Account<'info, Mint>, // why didnt we use InterfaceAccount<'info, Mint>?
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Program<'info, Token>, // why didnt we use InterfaceAccount<'info, Token>?
     pub system_program: Program<'info, System>,
 }
 

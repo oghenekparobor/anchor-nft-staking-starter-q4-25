@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { AnchorNftStakingQ425 } from "../target/types/anchor_nft_staking_q4_25";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { MPL_CORE_PROGRAM_ID } from "@metaplex-foundation/mpl-core";
 import { assert } from "chai";
 
@@ -219,12 +219,15 @@ describe("anchor-nft-staking-q4-25", () => {
         stakeAccountPda
       );
       assert.equal(stakeAccount.owner.toString(), user.publicKey.toString());
-      assert.equal(stakeAccount.mint.toString(), asset.publicKey.toString());
+      assert.equal(stakeAccount.asset.toString(), asset.publicKey.toString());
       assert.ok(stakeAccount.stakedAt > new anchor.BN(0));
 
       const userAccountAfter = await program.account.userAccount.fetch(
         userAccountPda
       );
+      console.log(`User Account After: ${userAccountAfter.amountStaked}`);
+      console.log(`User Account Bump: ${userAccountAfter.bump}`);
+      console.log(`User Account Points: ${userAccountAfter.points}`);
       assert.equal(userAccountAfter.amountStaked, 1);
       console.log("NFT staked successfully");
     });
@@ -276,8 +279,7 @@ describe("anchor-nft-staking-q4-25", () => {
       // Points should be awarded (time_elapsed * points_per_stake)
       assert.ok(userAccountAfter.points >= pointsBefore);
       console.log(
-        `NFT unstaked successfully, points earned: ${
-          userAccountAfter.points - pointsBefore
+        `NFT unstaked successfully, points earned: ${userAccountAfter.points - pointsBefore
         }`
       );
     });
@@ -294,6 +296,19 @@ describe("anchor-nft-staking-q4-25", () => {
         console.log("No points to claim, skipping claim test");
         return;
       }
+
+      console.log(`Points Before: ${pointsBefore}`);
+
+
+      const createRewardsAtaTx = new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          user.publicKey,
+          rewardsAtaPda,
+          user.publicKey,
+          rewardMintPda
+        )
+      );
+      await provider.sendAndConfirm(createRewardsAtaTx, [user]);
 
       const tx = await program.methods
         .claim()
